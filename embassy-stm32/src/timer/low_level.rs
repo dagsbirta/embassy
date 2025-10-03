@@ -331,6 +331,8 @@ impl<'d, T: CoreInstance> Timer<'d, T> {
         self.regs_core().dier().modify(|r| r.set_uie(enable));
     }
 
+
+
     /// Enable/disable autoreload preload.
     pub fn set_autoreload_preload(&self, enable: bool) {
         self.regs_core().cr1().modify(|r| r.set_arpe(enable));
@@ -676,6 +678,10 @@ impl<'d, T: AdvancedInstance1Channel> Timer<'d, T> {
         unsafe { crate::pac::timer::Tim1chCmp::from_ptr(T::regs()) }
     }
 
+    pub fn regs_adv(&self) -> crate::pac::timer::TimAdv {
+        unsafe { crate::pac::timer::TimAdv::from_ptr(T::regs()) }
+    }
+
     /// Set clock divider for the dead time.
     pub fn set_dead_time_clock_division(&self, value: vals::Ckd) {
         self.regs_1ch_cmp().cr1().modify(|w| w.set_ckd(value));
@@ -714,6 +720,11 @@ impl<'d, T: AdvancedInstance1Channel> Timer<'d, T> {
     /// Get state of MOE-bit in BDTR register
     pub fn get_moe(&self) -> bool {
         self.regs_1ch_cmp().bdtr().read().moe()
+    }
+
+    pub fn enable_trigger_update(&self) {
+        self.regs_adv().cr2().modify(|r| r.set_mms2(vals::Mms2::UPDATE));
+        // self.regs_adv().cr2().modify(|r| r.set_mms2(vals::Mms2::ENABLE));
     }
 }
 

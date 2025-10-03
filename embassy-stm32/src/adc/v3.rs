@@ -8,6 +8,7 @@ use pac::adc::vals::{Ckmode, Smpsel};
 use pac::adc::vals::{OversamplingRatio, OversamplingShift, Rovsm, Trovs};
 #[cfg(adc_g0)]
 pub use pac::adc::vals::{Ovsr, Ovss, Presc};
+use stm32_metapac::adc::vals::{Exten, Extsel};
 
 use super::{
     blocking_delay_us, Adc, AdcChannel, AnyAdcChannel, Instance, Resolution, RxDma, SampleTime, SealedAdcChannel,
@@ -261,6 +262,27 @@ impl<'d, T: Instance> Adc<'d, T> {
         blocking_delay_us(15);
 
         VrefInt {}
+    }
+
+    pub fn set_channel(&self, channel: usize, enable: bool)  {
+        T::regs().chselr().modify(|reg| {
+            reg.set_chsel(channel, enable);
+        });
+    }
+
+
+    pub fn enable_external_trigger(&mut self, trig_detection: Exten, trig_selection:Extsel)  {
+        T::regs().cfgr1().modify(|reg| {
+            reg.set_exten(trig_detection);
+            reg.set_extsel(trig_selection);
+        });
+
+        blocking_delay_us(20);
+
+        self.enable();
+
+        blocking_delay_us(10);
+        T::regs().cr().modify(|w| w.set_adstart(true));
     }
 
     pub fn enable_temperature(&self) -> Temperature {
