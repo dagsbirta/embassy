@@ -723,7 +723,10 @@ impl<'d, T: AdvancedInstance1Channel> Timer<'d, T> {
     }
 
     pub fn enable_trigger_update(&self) {
+        use crate::adc::blocking_delay_us;
+
         self.regs_adv().cr2().modify(|r| r.set_mms2(vals::Mms2::UPDATE));
+        // blocking_delay_us(30);
         // self.regs_adv().cr2().modify(|r| r.set_mms2(vals::Mms2::ENABLE));
     }
 }

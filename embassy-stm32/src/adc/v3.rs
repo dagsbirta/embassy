@@ -8,7 +8,7 @@ use pac::adc::vals::{Ckmode, Smpsel};
 use pac::adc::vals::{OversamplingRatio, OversamplingShift, Rovsm, Trovs};
 #[cfg(adc_g0)]
 pub use pac::adc::vals::{Ovsr, Ovss, Presc};
-use stm32_metapac::adc::vals::{Exten, Extsel};
+use stm32_metapac::adc::vals::{Align, Exten, Extsel};
 
 use super::{
     blocking_delay_us, Adc, AdcChannel, AnyAdcChannel, Instance, Resolution, RxDma, SampleTime, SealedAdcChannel,
@@ -264,14 +264,13 @@ impl<'d, T: Instance> Adc<'d, T> {
         VrefInt {}
     }
 
-    pub fn set_channel(&self, channel: usize, enable: bool)  {
+    pub fn set_channel(&self, channel: usize, enable: bool) {
         T::regs().chselr().modify(|reg| {
             reg.set_chsel(channel, enable);
         });
     }
 
-
-    pub fn enable_external_trigger(&mut self, trig_detection: Exten, trig_selection:Extsel)  {
+    pub fn enable_external_trigger(&mut self, trig_detection: Exten, trig_selection: Extsel) {
         T::regs().cfgr1().modify(|reg| {
             reg.set_exten(trig_detection);
             reg.set_extsel(trig_selection);
@@ -281,8 +280,22 @@ impl<'d, T: Instance> Adc<'d, T> {
 
         self.enable();
 
-        blocking_delay_us(10);
-        T::regs().cr().modify(|w| w.set_adstart(true));
+        // blocking_delay_us(10);
+        
+    }
+
+    pub fn start_streaming(&mut self) {
+        T::regs().cr().modify(|w: &mut stm32_metapac::adc::regs::Cr| w.set_adstart(true));
+    }
+
+    //TODO: refactor to accept more configs
+    pub fn enable_external_dma(&mut self) {
+        T::regs().cfgr1().modify(|reg| {
+            reg.set_align(Align::RIGHT);
+            reg.set_dmacfg(Dmacfg::CIRCULAR); // ADC’s DMA circular mode
+            reg.set_dmaen(true); // enable DMA requests
+            reg.set_ovrmod(true);
+        });
     }
 
     pub fn enable_temperature(&self) -> Temperature {
