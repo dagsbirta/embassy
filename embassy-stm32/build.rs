@@ -1728,6 +1728,7 @@ fn main() {
         let mut pt = TokenStream::new();
 
         for irq in p.interrupts {
+            println!("{:?}", irq);
             let iname = format_ident!("{}", irq.interrupt);
             let sname = format_ident!("{}", irq.signal);
             pt.extend(quote!(pub type #sname = crate::interrupt::typelevel::#iname;));
@@ -1939,21 +1940,37 @@ fn main() {
 
     let dma_irqs: TokenStream = dma_irqs
         .iter()
-        .map(|(irq, channels)| {
-            let irq = format_ident!("{}", irq);
+.map(|(irq, channels)| {
+        // Skip generating the whole IRQ function for this one
+        if *irq == "DMA1_CHANNEL1" {
+            return TokenStream::new();
+        }
 
-            let channels = channels.iter().map(|c| format_ident!("{}", c));
+        // Turn the IRQ name into an Ident
+        let irq_ident = format_ident!("{}", irq);
 
-            quote! {
-                #[cfg(feature = "rt")]
-                #[crate::interrupt]
-                unsafe fn #irq () {
-                    #(
-                        <crate::peripherals::#channels as crate::dma::ChannelInterrupt>::on_irq();
-                    )*
-                }
+        // Filter out specific channels, then turn each into an Ident
+        let channel_idents: Vec<Ident> = channels
+            .iter()
+            .filter(|c| c.as_str() != "DMA1_CH1") // optional: drop a specific channel
+            .map(|c| format_ident!("{}", c))
+            .collect();
+
+        // If nothing left to call, don't emit a function
+        if channel_idents.is_empty() {
+            return TokenStream::new();
+        }
+
+        quote! {
+            #[cfg(feature = "rt")]
+            #[crate::interrupt]
+            unsafe fn #irq_ident() {
+                #(
+                    <crate::peripherals::#channel_idents as crate::dma::ChannelInterrupt>::on_irq();
+                )*
             }
-        })
+        }
+    })
         .collect();
 
     g.extend(dma_irqs);
